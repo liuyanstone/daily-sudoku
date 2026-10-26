@@ -17,3 +17,26 @@ const bad=[...answer];bad[0]=bad[1];assert(conflicts(bad).has(0));assert(!solved
 assert.deepEqual(Object.keys(en).sort(),Object.keys(zh).sort());for(const k of Object.keys(en))assert.deepEqual([...en[k].matchAll(/\{(\w+)\}/g)].map(m=>m[1]).sort(),[...zh[k].matchAll(/\{(\w+)\}/g)].map(m=>m[1]).sort());
 console.log(`PASS: 48 unique single-solution base puzzles; ${dayTests} unique and uniquely solvable daily puzzles; all 4 score tiers; fixed clues; pencil notes; peer cleanup; undo; reload; once-only score; conflict detection; new local day; bilingual text.`);
 console.log('Today:',TIERS[p.grade].key,p.points,'points',p.clues,'clues');
+
+// New selectable puzzles preserve uniqueness and strictly decrease clue counts.
+let selectableChecked=0;
+for(let i=0;i<365;i++){
+ const day=localDay(new Date(2026,0,1+i));let previous=82;
+ for(let grade=0;grade<4;grade++){
+  const p=dailyPuzzle(day,PUZZLES,grade);assert.equal(p.version,2);assert.equal(p.grade,grade);assert.equal(p.points,TIERS[grade].points);assert(p.clues<previous);previous=p.clues;
+  assert.equal(search(p.givens,2).count,1);assert(solved(p.solution,p.givens));assert.deepEqual(dailyPuzzle(day,PUZZLES,grade),p);assert.deepEqual(restoreEntry(freshEntry(p),p),freshEntry(p));selectableChecked++;
+ }
+}
+const {scoreDetails}=await import('./state.mjs');
+const chosen=dailyPuzzle('2026-10-25',PUZZLES,0),empty=chosen.givens.findIndex(d=>!d),correctDigit=chosen.solution[empty],wrongDigit=correctDigit===9?1:correctDigit+1;
+let guided=freshEntry(chosen,true);guided=enter(guided,chosen,empty,wrongDigit);assert.equal(guided.mistakes,1);assert.equal(scoreDetails(guided,chosen).percent,2);assert.equal(scoreDetails(guided,chosen).available,294);
+assert.equal(enter(guided,chosen,empty,wrongDigit),guided,'Repeating the same number cannot add another penalty');
+guided=undo(guided);assert.equal(guided.values[empty],0);assert.equal(guided.mistakes,1,'Undo preserves wrong entry count');
+guided=enter(guided,chosen,empty,wrongDigit,true);assert.equal(guided.mistakes,1,'Pencil notes are not penalized');
+guided=enter(guided,chosen,empty,wrongDigit);assert.equal(guided.mistakes,2);assert.equal(scoreDetails(guided,chosen).percent,8);guided=enter(guided,chosen,empty,0);assert.equal(guided.mistakes,2);guided=enter(guided,chosen,empty,wrongDigit);assert.equal(guided.mistakes,3);assert.equal(scoreDetails(guided,chosen).percent,18);
+const guidedReload=restoreEntry(JSON.parse(JSON.stringify(guided)),chosen);assert.deepEqual(guidedReload,guided);assert.equal(guidedReload.stepMode,true);
+for(let k=0;k<81;k++)if(!chosen.givens[k])guided=enter(guided,chosen,k,chosen.solution[k]);guided=finish(guided,chosen);assert.equal(guided.points,246);assert.equal(guided.mistakes,3);assert.deepEqual(restoreEntry(guided,chosen),guided);assert.equal(finish(guided,chosen),guided);
+assert.equal(scoreDetails({...guided,mistakes:8},chosen).available,0);assert.equal(scoreDetails({...guided,mistakes:999},chosen).available,0);
+let normal=enter(freshEntry(chosen),chosen,empty,wrongDigit);assert.equal(normal.mistakes,0);assert.equal(scoreDetails(normal,chosen).available,300);
+const legacy=dailyPuzzle('2026-10-25',PUZZLES),oldRaw={values:legacy.solution,done:true,points:1500,elapsed:1234};const oldEntry=restoreEntry(oldRaw,legacy);assert(oldEntry.done);assert.equal(oldEntry.points,1500);assert.equal(oldEntry.puzzleVersion,1);
+console.log(`PASS: ${selectableChecked} selectable daily puzzles unique; four levels with decreasing clues; correct/wrong entry scoring; quadratic penalties; notes/repeat protection; undo/reload preserve penalties; score floor; normal mode; old completion migration.`);
