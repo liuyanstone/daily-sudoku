@@ -4,7 +4,7 @@ A bilingual, accessible daily Sudoku game, built as a static website for GitHub 
 
 ## Play
 
-One puzzle per local calendar day. Choose from four difficulty levels and optionally enable step-by-step mode before the first number entry or pencil note. Both settings then lock for the day, including after undo or reopening. The same date and difficulty always produce the same puzzle. Every puzzle has exactly one solution. A fresh day resets the puzzle, settings, and mistake count.
+Play as many completed puzzles as you like each day. Choose from four difficulty levels and optionally enable step-by-step mode before the first number entry or pencil note. Both settings then lock for the current puzzle, including after undo or reopening. After completing it, use **Play again · choose difficulty** to start a fresh puzzle and choose new settings. The same date, replay number and difficulty always reproduce the same puzzle. Every puzzle has exactly one solution. Each replay resets the current puzzle, timer, notes and mistake count. A fresh day starts its own daily best.
 
 | Difficulty | Given numbers | Base score |
 | --- | ---: | ---: |
@@ -13,7 +13,7 @@ One puzzle per local calendar day. Choose from four difficulty levels and option
 | Hard / 困难 | 32 | 1,000 |
 | Expert / 专家 | 25–29 | 1,500 |
 
-Points are awarded once when the complete grid is valid. Time has no effect on score. Notes, undo, conflict checking, progress, language, sound preference and daily score history are stored in this browser/device. There is no account or cross-device synchronization. A new day starts a fresh puzzle; unfinished older puzzles remain in local storage but are not offered for play.
+Each completed, valid grid earns a score. The daily score is the maximum of completed puzzle scores, never their sum. A lower-scoring or unfinished replay cannot replace the best. Previous flat saves migrate their completed score into the daily best, including older technique-rated puzzles. Time has no effect on score. Notes, undo, conflict checking, progress, language, sound preference and daily best score history are stored in this browser/device. There is no account or cross-device synchronization. A new day starts a fresh puzzle; unfinished older puzzles remain in local storage but are not offered for play.
 
 ## Step-by-step mode / 逐步模式
 
@@ -33,7 +33,7 @@ Select a square, then tap a number or use 1–9. Arrow keys move selection; N to
 
 Serve this directory with a static web server, for example `python3 -m http.server 8777`. Open localhost:8777. ES modules require serving over HTTP/HTTPS rather than opening index.html directly.
 
-With Node.js installed, run `node check.mjs`. It validates all base puzzles, 365 legacy daily puzzles plus 1,460 selectable puzzles, decreasing clue counts across all four levels, date stability, completion scoring, quadratic mistake penalties, score floor, penalty persistence, notes, undo, legacy saves, corrupt-save handling and translation parity. Run `node generate.mjs` only when intentionally replacing the base library; changing the library changes daily puzzles, so saved progress from the previous version may no longer apply.
+With Node.js installed, run `node check.mjs`. It validates all base puzzles, 365 legacy daily puzzles plus 1,460 selectable puzzles, decreasing clue counts across all four levels, date stability, completion scoring, quadratic mistake penalties, score floor, penalty persistence, notes, undo, legacy saves, replay puzzle generation, highest-score selection across different difficulties, unfinished/lower replay preservation, zero scores, corrupt-save handling and translation parity. Run `node generate.mjs` only when intentionally replacing the base library; changing the library changes daily puzzles, so saved progress from the previous version may no longer apply.
 
 ## Publish
 

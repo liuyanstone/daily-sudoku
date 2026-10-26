@@ -40,3 +40,19 @@ assert.equal(scoreDetails({...guided,mistakes:8},chosen).available,0);assert.equ
 let normal=enter(freshEntry(chosen),chosen,empty,wrongDigit);assert.equal(normal.mistakes,0);assert.equal(scoreDetails(normal,chosen).available,300);
 const legacy=dailyPuzzle('2026-10-25',PUZZLES),oldRaw={values:legacy.solution,done:true,points:1500,elapsed:1234};const oldEntry=restoreEntry(oldRaw,legacy);assert(oldEntry.done);assert.equal(oldEntry.points,1500);assert.equal(oldEntry.puzzleVersion,1);
 console.log(`PASS: ${selectableChecked} selectable daily puzzles unique; four levels with decreasing clues; correct/wrong entry scoring; quadratic penalties; notes/repeat protection; undo/reload preserve penalties; score floor; normal mode; old completion migration.`);
+
+const {restoreDailyBest}=await import('./state.mjs');
+const resolve=(raw)=>dailyPuzzle('2026-10-25',PUZZLES,raw.puzzleVersion===2?raw.difficulty:null,raw.round||0);
+function completedAttempt(grade,round=0,mistakes=0){const p=dailyPuzzle('2026-10-25',PUZZLES,grade,round);let entry=freshEntry(p,true);entry={...entry,values:[...p.solution],mistakes,started:true};return finish(entry,p);}
+const mediumBest=completedAttempt(1,0,2);assert.equal(mediumBest.points,552);
+assert.deepEqual(restoreDailyBest(mediumBest,resolve),mediumBest,'Existing completed flat saves become daily best');
+const low=completedAttempt(0,1);assert.equal(low.points,300);let dailyRow={...low,best:mediumBest};assert.equal(restoreDailyBest(dailyRow,resolve).points,552,'Lower completed replay must not replace best');
+const higher=completedAttempt(2,2);dailyRow={...higher,best:mediumBest};assert.equal(restoreDailyBest(dailyRow,resolve).points,1000,'Higher result replaces best; scores are not summed');
+const highBest=restoreDailyBest(dailyRow,resolve),newPuzzle=dailyPuzzle('2026-10-25',PUZZLES,3,3);dailyRow={...freshEntry(newPuzzle,true),best:highBest};assert.equal(restoreDailyBest(dailyRow,resolve).points,1000,'Unfinished new replay preserves best');assert.equal(restoreDailyBest(JSON.parse(JSON.stringify(dailyRow)),resolve).points,1000,'Best survives reload during replay');
+const lowerAgain=completedAttempt(0,3);assert.equal(restoreDailyBest({...lowerAgain,best:highBest},resolve).points,1000);
+const zero=completedAttempt(0,1,8);assert.equal(restoreDailyBest(zero,resolve).points,0,'A completed zero-score attempt is still a valid daily record');
+assert.equal(restoreDailyBest({...freshEntry(newPuzzle),best:{...higher,values:Array(81).fill(9),done:true,points:99999}},resolve),null,'Invalid best grid cannot become a score');
+assert.equal(restoreDailyBest({...low,best:{...mediumBest,points:999999}},resolve).points,552,'Recalculate saved score rather than trusting stored points');
+assert.equal(restoreDailyBest(null,resolve),null);assert.equal(restoreDailyBest(oldRaw,resolve).points,1500,'Original pre-selection Sudoku completion migrates');
+let replayChecked=0;for(let d=0;d<20;d++){const date=localDay(new Date(2026,9,1+d));for(let grade=0;grade<4;grade++){const seen=new Set();for(let round=0;round<3;round++){const p=dailyPuzzle(date,PUZZLES,grade,round);assert.equal(p.round,round);assert.equal(search(p.givens,2).count,1);assert(!seen.has(p.givens.join('')),'Replay should offer a fresh grid');seen.add(p.givens.join(''));assert.deepEqual(dailyPuzzle(date,PUZZLES,grade,round),p);replayChecked++;}}}
+console.log(`PASS: highest completed daily score only; old save migration; lower/unfinished replays retain best; higher result replaces best; zero and invalid score handling; ${replayChecked} deterministic unique-solution replay puzzles.`);
