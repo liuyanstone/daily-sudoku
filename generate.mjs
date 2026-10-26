@@ -1,0 +1,6 @@
+import fs from 'node:fs';
+import {search,rate,seeded,TIERS} from './engine.mjs';
+const rng=seeded(2026102501),buckets=[[],[],[],[]],seen=new Set();let attempts=0;
+while(buckets.some(b=>b.length<12)&&attempts<1600){attempts++;const full=search(Array(81).fill(0),1,rng).solution,grid=[...full],order=Array.from({length:81},(_,i)=>i);for(let i=80;i>0;i--){const j=Math.floor(rng()*(i+1));[order[i],order[j]]=[order[j],order[i]];}const target=[41,35,29,25][attempts%4];let clues=81;for(const k of order){if(clues<=target)break;const old=grid[k];grid[k]=0;if(search(grid,2).count!==1)grid[k]=old;else clues--;}
+ const rating=rate(grid),id=grid.join('');if(buckets[rating.grade].length<12&&!seen.has(id)){buckets[rating.grade].push({id:`${TIERS[rating.grade].key}-${buckets[rating.grade].length+1}`,grid,grade:rating.grade,clues});seen.add(id);console.log('Library',buckets.map(b=>b.length).join('/'),'attempt',attempts);}}
+if(buckets.some(b=>b.length<12))throw Error('Incomplete puzzle library: '+buckets.map(b=>b.length));fs.writeFileSync('puzzles.mjs','// Uniquely solvable, technique-rated base puzzles. Daily transforms preserve validity.\nexport const PUZZLES='+JSON.stringify(buckets.flat())+';\n');console.log('Generated',buckets.flat().length,'unique puzzles in',attempts,'attempts');
